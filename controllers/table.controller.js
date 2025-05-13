@@ -3,6 +3,7 @@ const QRCode = require('../models/QRCode.model');
 const qrcode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
+const { uploadFile, deleteFile } = require('../utils/storage');
 
 // Get all tables
 exports.getAllTables = async (req, res) => {
@@ -128,9 +129,17 @@ exports.deleteTable = async (req, res) => {
       const qrCode = await QRCode.findById(table.qrCode);
       if (qrCode) {
         // Delete QR code image file
-        const filePath = path.join(__dirname, '..', qrCode.code);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+        if (qrCode.code) {
+          if (qrCode.code.startsWith('http://') || qrCode.code.startsWith('https://')) {
+            // Delete from Vercel Blob
+            await deleteFile(qrCode.code);
+          } else {
+            // Handle legacy file deletion
+            const filePath = path.join(__dirname, '..', qrCode.code);
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          }
         }
         await qrCode.deleteOne();
       }
@@ -158,9 +167,15 @@ exports.generateQRCode = async (req, res) => {
     if (table.qrCode) {
       const existingQR = await QRCode.findById(table.qrCode);
       if (existingQR) {
-        const filePath = path.join(__dirname, '..', existingQR.code);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+        // Delete from Vercel Blob if it's a full URL
+        if (existingQR.code && (existingQR.code.startsWith('http://') || existingQR.code.startsWith('https://'))) {
+          await deleteFile(existingQR.code);
+        } else {
+          // Handle legacy file deletion
+          const filePath = path.join(__dirname, '..', existingQR.code);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         }
         await existingQR.deleteOne();
       }
@@ -169,16 +184,18 @@ exports.generateQRCode = async (req, res) => {
     // Generate URL with table ID
     const url = `${baseUrl}/menu?table=${table._id}`;
     
-    // Generate QR code
-    const qrCodePath = path.join(__dirname, '..', 'uploads', `qr-table-${table.tableNumber}-${Date.now()}.png`);
-    await qrcode.toFile(qrCodePath, url);
+    // Generate QR code as buffer
+    const qrBuffer = await qrcode.toBuffer(url);
     
-    const code = `/uploads/${path.basename(qrCodePath)}`;
-
+    // Upload to Vercel Blob
+    const fileName = `qr-table-${table.tableNumber}-${Date.now()}.png`;
+    const fileUrl = await uploadFile(qrBuffer, fileName);
+    
+    // Create new QR code document with full URL
     const newQRCode = new QRCode({
       section: `Table ${table.tableNumber}`,
       url,
-      code,
+      code: fileUrl, // Store the complete URL
       type: 'table',
       tableId: table._id
     });

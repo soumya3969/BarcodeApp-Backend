@@ -1,39 +1,40 @@
-const QRCode = require('../models/QRCode.model');
-const qrcode = require('qrcode');
-const path = require('path');
-const fs = require('fs');
+const QRCode = require("../models/QRCode.model");
+const qrcode = require("qrcode");
+const path = require("path");
+const fs = require("fs");
+const { uploadFile, deleteFile } = require("../utils/storage");
 
 // Get all QR codes
 exports.getAllQRCodes = async (req, res) => {
   try {
     const { type } = req.query;
     const query = {};
-    
+
     if (type) {
       query.type = type;
     }
-    
-    const qrCodes = await QRCode.find(query).populate('tableId');
+
+    const qrCodes = await QRCode.find(query).populate("tableId");
     res.json(qrCodes);
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
 // Get QR code by ID
 exports.getQRCodeById = async (req, res) => {
   try {
-    const qrCode = await QRCode.findById(req.params.id).populate('tableId');
-    
+    const qrCode = await QRCode.findById(req.params.id).populate("tableId");
+
     if (!qrCode) {
-      return res.status(404).json({ message: 'QR code not found' });
+      return res.status(404).json({ message: "QR code not found" });
     }
-    
+
     res.json(qrCode);
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -43,52 +44,59 @@ exports.createGlobalQRCode = async (req, res) => {
     const { section, url } = req.body;
 
     // Generate QR code
-    const qrCodePath = path.join(__dirname, '..', 'uploads', `qr-${Date.now()}.png`);
+    const qrCodePath = path.join(
+      __dirname,
+      "..",
+      "uploads",
+      `qr-${Date.now()}.png`
+    );
     await qrcode.toFile(qrCodePath, url);
-    
+
     const code = `/uploads/${path.basename(qrCodePath)}`;
 
     const newQRCode = new QRCode({
       section,
       url,
       code,
-      type: 'global'
+      type: "global",
     });
 
     const savedQRCode = await newQRCode.save();
     res.status(201).json(savedQRCode);
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
 // Create global menu QR code
-exports.createGlobalMenuQRCode = async (req, res) => {
+exports.createGlobalMenuQR = async (req, res) => {
   try {
-    const { baseUrl } = req.body; // Frontend base URL
-    
-    // Generate URL for global menu
-    const url = `${baseUrl}/menu`;
-    
-    // Generate QR code
-    const qrCodePath = path.join(__dirname, '..', 'uploads', `qr-global-${Date.now()}.png`);
-    await qrcode.toFile(qrCodePath, url);
-    
-    const code = `/uploads/${path.basename(qrCodePath)}`;
+    const { url } = req.body; // Frontend base URL
+
+    // Generate QR code as buffer
+    // const qrBuffer = await qrcode.toBuffer(url, { type: 'png' });
+    const qrBuffer = await qrcode.toBuffer(url);
+
+    // upload to vercel blob storage
+    const fileName = `qr-global-${Date.now()}.png`;
+
+    const fileUrl = await uploadFile(qrBuffer, fileName);
+
+    // create new QR code document with full URL
 
     const newQRCode = new QRCode({
-      section: 'Global Menu',
-      url,
-      code,
-      type: 'global'
+      section: "Global Menu",
+      url: url,
+      code: fileUrl,
+      type: "global",
     });
 
     const savedQRCode = await newQRCode.save();
     res.status(201).json(savedQRCode);
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -98,19 +106,21 @@ exports.deleteQRCode = async (req, res) => {
     const qrCode = await QRCode.findById(req.params.id);
 
     if (!qrCode) {
-      return res.status(404).json({ message: 'QR code not found' });
+      return res.status(404).json({ message: "QR code not found" });
     }
 
-    // Delete QR code image file
-    const filePath = path.join(__dirname, '..', qrCode.code);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    // Delete QR code from vercel blob storage if it's full URL
+    if (
+      qrCode.code &&
+      (qrCode.code.startsWith("http://") || qrCode.code.startsWith("https://"))
+    ) {
+      await deleteFile(qrCode.code);
     }
 
     await qrCode.deleteOne();
-    res.json({ message: 'QR code removed' });
+    res.json({ message: "QR code removed" });
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 };
