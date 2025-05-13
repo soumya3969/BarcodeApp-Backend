@@ -38,7 +38,10 @@ async function uploadToVercelBlob(req, res, next) {
     const blob = await put(
       `${Date.now()}-${req.file.originalname}`, 
       req.file.buffer, 
-      { access: 'public' }
+      { 
+        access: 'public',
+        token: process.env.BARCODEAPP_READ_WRITE_TOKEN
+      }
     );
 
     // Add the blob URL to the request

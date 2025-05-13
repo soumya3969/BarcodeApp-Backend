@@ -82,10 +82,15 @@ exports.createGlobalMenuQRCode = async (req, res) => {
     });
     
     // Upload to Vercel Blob
-    const blob = await put(`qr-global-${Date.now()}.png`, qrBuffer, { 
-      access: 'public',
-      contentType: 'image/png'
-    });
+    const blob = await put(
+      `qr-global-${Date.now()}.png`, 
+      qrBuffer, 
+      { 
+        access: 'public',
+        contentType: 'image/png',
+        token: process.env.BARCODEAPP_READ_WRITE_TOKEN
+      }
+    );
 
     const newQRCode = new QRCode({
       section: 'Global Menu',

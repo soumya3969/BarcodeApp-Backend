@@ -183,10 +183,15 @@ exports.generateQRCode = async (req, res) => {
     });
     
     // Upload to Vercel Blob
-    const blob = await put(`qr-table-${table.tableNumber}-${Date.now()}.png`, qrBuffer, { 
-      access: 'public',
-      contentType: 'image/png'
-    });
+    const blob = await put(
+      `qr-table-${table.tableNumber}-${Date.now()}.png`, 
+      qrBuffer, 
+      { 
+        access: 'public',
+        contentType: 'image/png',
+        token: process.env.BARCODEAPP_READ_WRITE_TOKEN // Pass token explicitly
+      }
+    );
 
     const newQRCode = new QRCode({
       section: `Table ${table.tableNumber}`,
