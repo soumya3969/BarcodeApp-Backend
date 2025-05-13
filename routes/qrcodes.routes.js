@@ -13,7 +13,7 @@ router.get('/:id', auth, qrcodeController.getQRCodeById);
 router.post('/', auth, authorize('owner', 'manager'), qrcodeController.createGlobalQRCode);
 
 // Create global menu QR code (protected)
-router.post('/global-menu', auth, authorize('owner', 'manager'), qrcodeController.createGlobalMenuQR);
+router.post('/global-menu', auth, authorize('owner', 'manager'), qrcodeController.createGlobalMenuQRCode);
 
 // Delete QR code (protected)
 router.delete('/:id', auth, authorize('owner', 'manager'), qrcodeController.deleteQRCode);
