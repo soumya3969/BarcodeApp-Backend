@@ -95,7 +95,7 @@ exports.createMenuItem = async (req, res) => {
       category: categoryId,
       categoryName: categoryName, // Store category name for easy reference
       dietaryInfo,
-      image: req.file ? `/uploads/${req.file.filename}` : ''
+      image: req.file ? req.file.blobUrl : ''
     });
 
     const menuItem = await newMenuItem.save();
@@ -156,7 +156,7 @@ exports.updateMenuItem = async (req, res) => {
     };
 
     if (req.file) {
-      menuItemFields.image = `/uploads/${req.file.filename}`;
+      menuItemFields.image = req.file.blobUrl;
     }
 
     const menuItem = await MenuItem.findByIdAndUpdate(

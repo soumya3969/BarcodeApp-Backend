@@ -4,6 +4,7 @@ const qrcode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 const { uploadFile, deleteFile } = require('../utils/storage');
+const { put } = require('@vercel/blob');
 
 // Get all tables
 exports.getAllTables = async (req, res) => {
@@ -156,7 +157,7 @@ exports.deleteTable = async (req, res) => {
 // Generate QR code for table
 exports.generateQRCode = async (req, res) => {
   try {
-    const { baseUrl } = req.body; // Frontend base URL
+    const { baseUrl } = req.body;
     const table = await Table.findById(req.params.id);
     
     if (!table) {
@@ -165,37 +166,32 @@ exports.generateQRCode = async (req, res) => {
     
     // Delete existing QR code if it exists
     if (table.qrCode) {
-      const existingQR = await QRCode.findById(table.qrCode);
-      if (existingQR) {
-        // Delete from Vercel Blob if it's a full URL
-        if (existingQR.code && (existingQR.code.startsWith('http://') || existingQR.code.startsWith('https://'))) {
-          await deleteFile(existingQR.code);
-        } else {
-          // Handle legacy file deletion
-          const filePath = path.join(__dirname, '..', existingQR.code);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        }
-        await existingQR.deleteOne();
-      }
+      // Handle deletion - note: Vercel Blob might not support deletion in free tier
+      // Just update the record and let Vercel Blob handle garbage collection
+      await QRCode.findByIdAndDelete(table.qrCode);
     }
 
     // Generate URL with table ID
     const url = `${baseUrl}/menu?table=${table._id}`;
     
     // Generate QR code as buffer
-    const qrBuffer = await qrcode.toBuffer(url);
+    const qrBuffer = await new Promise((resolve, reject) => {
+      qrcode.toBuffer(url, (err, buffer) => {
+        if (err) reject(err);
+        else resolve(buffer);
+      });
+    });
     
     // Upload to Vercel Blob
-    const fileName = `qr-table-${table.tableNumber}-${Date.now()}.png`;
-    const fileUrl = await uploadFile(qrBuffer, fileName);
-    
-    // Create new QR code document with full URL
+    const blob = await put(`qr-table-${table.tableNumber}-${Date.now()}.png`, qrBuffer, { 
+      access: 'public',
+      contentType: 'image/png'
+    });
+
     const newQRCode = new QRCode({
       section: `Table ${table.tableNumber}`,
       url,
-      code: fileUrl, // Store the complete URL
+      code: blob.url, // Store the full Blob URL
       type: 'table',
       tableId: table._id
     });

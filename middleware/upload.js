@@ -1,16 +1,11 @@
-
 const multer = require('multer');
+const { put } = require('@vercel/blob');
 const path = require('path');
 
-// Set storage engine
-const storage = multer.diskStorage({
-  destination: './uploads/',
-  filename: function(req, file, cb) {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  }
-});
+// In-memory storage for multer
+const storage = multer.memoryStorage();
 
-// Initialize upload
+// Initialize upload with memory storage
 const upload = multer({
   storage: storage,
   limits: { fileSize: 1000000 },
@@ -21,11 +16,8 @@ const upload = multer({
 
 // Check file type
 function checkFileType(file, cb) {
-  // Allowed extensions
   const filetypes = /jpeg|jpg|png|gif/;
-  // Check extension
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  // Check mime
   const mimetype = filetypes.test(file.mimetype);
 
   if (mimetype && extname) {
@@ -35,4 +27,27 @@ function checkFileType(file, cb) {
   }
 }
 
-module.exports = upload;
+// Middleware to handle Vercel Blob upload after multer
+async function uploadToVercelBlob(req, res, next) {
+  try {
+    if (!req.file) {
+      return next();
+    }
+
+    // Upload to Vercel Blob
+    const blob = await put(
+      `${Date.now()}-${req.file.originalname}`, 
+      req.file.buffer, 
+      { access: 'public' }
+    );
+
+    // Add the blob URL to the request
+    req.file.blobUrl = blob.url;
+    next();
+  } catch (error) {
+    console.error('Error uploading to Vercel Blob:', error);
+    return res.status(500).json({ message: 'File upload failed' });
+  }
+}
+
+module.exports = { upload, uploadToVercelBlob };

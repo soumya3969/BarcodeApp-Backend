@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth, authorize } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { upload, uploadToVercelBlob } = require('../middleware/upload');
 const menuController = require('../controllers/menu.controller');
 
 // Get all menu items
@@ -14,10 +14,10 @@ router.get('/categories', menuController.getAllCategories);
 router.get('/:id', menuController.getMenuItemById);
 
 // Create menu item (protected)
-router.post('/', auth, authorize('owner', 'manager'), upload.single('image'), menuController.createMenuItem);
+router.post('/', auth, authorize('owner', 'manager'), upload.single('image'), uploadToVercelBlob, menuController.createMenuItem);
 
 // Update menu item (protected)
-router.put('/:id', auth, authorize('owner', 'manager'), upload.single('image'), menuController.updateMenuItem);
+router.put('/:id', auth, authorize('owner', 'manager'), upload.single('image'), uploadToVercelBlob, menuController.updateMenuItem);
 
 // Delete menu item (protected)
 router.delete('/:id', auth, authorize('owner', 'manager'), menuController.deleteMenuItem);

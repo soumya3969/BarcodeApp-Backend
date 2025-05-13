@@ -36,6 +36,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(path.join(__dirname, 'public'))); 
 
 // Connect to MongoDB
 // mongoose.connect(process.env.MONGODB_URI)
@@ -71,7 +72,8 @@ app.use('/api/public', publicRoutes); // Add public routes that don't need authe
 
 // Basic route
 app.get('/', (req, res) => {
-  res.send('Barcode App API is running');
+  // res.send('Barcode App API is running');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start server
