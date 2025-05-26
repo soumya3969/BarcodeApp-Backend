@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const logger = require('./utils/logger');
+
+dotenv.config();
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -12,72 +15,67 @@ const userRoutes = require('./routes/users.routes');
 const qrCodeRoutes = require('./routes/qrcodes.routes');
 const tableRoutes = require('./routes/tables.routes');
 const orderRoutes = require('./routes/orders.routes');
-const publicRoutes = require('./routes/public.routes'); // Import public routes
+const publicRoutes = require('./routes/public.routes');
 
-// Load environment variables
-dotenv.config();
-
-// Create Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// !todo: implement this for security later
-// const whitelist = [process.env.CLIENT_URL, process.env.ADMIN_URL];
-// Recommended CORS configuration
-// const corsOptions = {
-//   origin: process.env.CLIENT_URL,
-//   credentials: true
-// };
-
-// app.use(cors(corsOptions));
+const corsOptions = {
+  origin: process.env.CLIENT_URL || '*',
+  credentials: true
+};
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname, 'public'))); 
 
 // Connect to MongoDB
-// mongoose.connect(process.env.MONGODB_URI)
-//   .then(() => console.log('MongoDB connected'))
-//   .catch(err => console.error('MongoDB connection error:', err));
-
-  const connectDB = async () => {
+const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000, // 30 seconds
-
+      serverSelectionTimeoutMS: 30000,
+      maxPoolSize: 10,
+      minPoolSize: 2
     });
-    console.log('MongoDB connected successfully');
+    logger.info('MongoDB connected successfully');
   } catch (error) {
-    console.error('MongoDB connection error:', error.message);
+    logger.error('MongoDB connection error: %s', error.message);
     process.exit(1); // Exit process with failure
   }
 };
 
 connectDB();
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/menu', menuRoutes);
-app.use('/api/offers', offerRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/qrcodes', qrCodeRoutes);
-app.use('/api/tables', tableRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/public', publicRoutes); // Add public routes that don't need authentication
+// Load API rate limiter and error handlers
+const { apiLimiter } = require('./middleware/rateLimiter');
+const { errorHandler, notFoundHandler } = require('./utils/errorHandler');
 
 // Basic route
 app.get('/', (req, res) => {
-  // res.send('Barcode App API is running');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
+// Apply rate limiting to all API routes except public ones
+app.use('/api/auth', apiLimiter, authRoutes);
+app.use('/api/menu', apiLimiter, menuRoutes);
+app.use('/api/offers', apiLimiter, offerRoutes);
+app.use('/api/users', apiLimiter, userRoutes);
+app.use('/api/qrcodes', apiLimiter, qrCodeRoutes);
+app.use('/api/tables', apiLimiter, tableRoutes);
+app.use('/api/orders', apiLimiter, orderRoutes);
+app.use('/api/public', publicRoutes);
+
+app.use(notFoundHandler);
+
+app.use(errorHandler);
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
 });
+
 module.exports = app; // Export the app for testing purposes

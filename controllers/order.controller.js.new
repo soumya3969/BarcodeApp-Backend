@@ -1,3 +1,4 @@
+// filepath: /workspaces/BarcodeApp-Backend/controllers/order.controller.js
 const Order = require('../models/Order.model');
 const Table = require('../models/Table.model');
 const { calculateOrderTotal, validateTable } = require('../utils/orderUtils');
@@ -82,7 +83,7 @@ exports.createOrder = async (req, res) => {
       return response.notFound(res, 'Table not found');
     }
     
-    throw error; 
+    throw error; // Let the global error handler handle unexpected errors
   }
 };
 
@@ -132,7 +133,7 @@ exports.updateOrderStatus = async (req, res) => {
     return response.success(res, updatedOrder, 'Order status updated successfully');
   } catch (error) {
     logger.error(`Error updating order status: ${error.message}`);
-    throw error;
+    throw error; // Let the global error handler handle unexpected errors
   }
 };
 
@@ -166,14 +167,9 @@ exports.updatePaymentStatus = async (req, res) => {
     await order.save();
     logger.info(`Order ${order._id} payment status updated to ${paymentStatus}`);
     
-    const updatedOrder = await Order.findById(order._id)
-      .populate('table')
-      .populate('items.menuItem')
-      .populate('servedBy');
-      
-    return response.success(res, updatedOrder, 'Payment status updated successfully');
+    return response.success(res, order, 'Payment status updated successfully');
   } catch (error) {
     logger.error(`Error updating payment status: ${error.message}`);
-    throw error; 
+    throw error; // Let the global error handler handle unexpected errors
   }
 };
