@@ -1,7 +1,14 @@
 const Joi = require('joi');
 const logger = require('../utils/logger');
 
-// Usage: validator(schema) where schema is a Joi schema
+/**
+ * Creates an Express middleware that validates and sanitizes the request body against a Joi schema.
+ *
+ * If validation fails, responds with HTTP 400 and an array of error messages. If validation succeeds, replaces {@link req.body} with the validated and sanitized value and passes control to the next middleware.
+ *
+ * @param {import('joi').Schema} schema - Joi schema to validate the request body against.
+ * @returns {import('express').RequestHandler} Express middleware for request body validation.
+ */
 function validator(schema) {
   return (req, res, next) => {
     const options = {
