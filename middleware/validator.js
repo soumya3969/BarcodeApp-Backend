@@ -13,7 +13,6 @@ function validator(schema) {
     if (error) {
       // Log validation errors if logger is available
       try {
-        const logger = require('../utils/logger');
         logger.warn('Validation error: %o', error.details);
       } catch (e) {}
       return res.status(400).json({
