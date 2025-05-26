@@ -58,10 +58,10 @@ const menuItemSchemas = {
       'any.required': 'Price is required'
     }),
     category: Joi.string().allow(''),
-    newCategory: Joi.string().valid('true', 'false').default('false'),
-    isVegetarian: Joi.string().valid('true', 'false').default('false'),
-    isVegan: Joi.string().valid('true', 'false').default('false'),
-    isGlutenFree: Joi.string().valid('true', 'false').default('false')
+    newCategory: Joi.boolean().default(false),
+    isVegetarian: Joi.boolean().default(false),
+    isVegan: Joi.boolean().default(false),
+    isGlutenFree: Joi.boolean().default(false)
   })
 };
 
