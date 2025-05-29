@@ -1,4 +1,5 @@
 # BarcodeApp-Backend
+![BarCodeApp Logo](https://socialify.git.ci/soumya3969/BarcodeApp-Backend/image?custom_description=Server+For+the+BarcodeApp&description=1&font=Source+Code+Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Circuit+Board&pulls=1&stargazers=1&theme=Auto)
 
 Backend server for the Barcode App, a restaurant/table management and ordering system with QR code support.
 
@@ -198,5 +199,5 @@ ISC
 
 ---
 
-**Authors:** Jayadev / Soumya
+**Authors:** Soumya / Jayadev 
 
