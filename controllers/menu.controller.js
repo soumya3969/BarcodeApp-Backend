@@ -1,5 +1,6 @@
 const MenuItem = require('../models/MenuItem.model');
 const Category = require('../models/Category.model');
+const { deleteFile } = require('../utils/storage');
 
 // Get all menu items
 exports.getAllMenuItems = async (req, res) => {
@@ -111,6 +112,12 @@ exports.updateMenuItem = async (req, res) => {
   try {
     const { name, description, price, category, newCategory } = req.body;
     
+    // First, get the existing menu item to check if it has an image
+    const existingMenuItem = await MenuItem.findById(req.params.id);
+    if (!existingMenuItem) {
+      return res.status(404).json({ message: 'Menu item not found' });
+    }
+    
     // Handle custom category if specified
     let categoryId = category;
     let categoryName = '';
@@ -155,19 +162,30 @@ exports.updateMenuItem = async (req, res) => {
       dietaryInfo
     };
 
+    // If a new image is uploaded, delete the old one
     if (req.file) {
+      // Check if the item has an existing image
+      if (existingMenuItem.image && existingMenuItem.image.startsWith('http')) {
+        try {
+          // Delete the old image from blob storage
+          await deleteFile(existingMenuItem.image);
+          console.log(`Deleted old image: ${existingMenuItem.image}`);
+        } catch (deleteError) {
+          console.error('Failed to delete old image:', deleteError);
+          // Continue with update even if deletion fails
+        }
+      }
+      
+      // Set the new image URL
       menuItemFields.image = req.file.blobUrl;
     }
 
+    // Update the menu item
     const menuItem = await MenuItem.findByIdAndUpdate(
       req.params.id,
       { $set: menuItemFields },
       { new: true }
     );
-
-    if (!menuItem) {
-      return res.status(404).json({ message: 'Menu item not found' });
-    }
 
     res.json(menuItem);
   } catch (error) {
@@ -183,6 +201,18 @@ exports.deleteMenuItem = async (req, res) => {
 
     if (!menuItem) {
       return res.status(404).json({ message: 'Menu item not found' });
+    }
+
+    // Delete the image if it exists
+    if (menuItem.image && menuItem.image.startsWith('http')) {
+      try {
+        // Delete the image from blob storage
+        await deleteFile(menuItem.image);
+        console.log(`Deleted image: ${menuItem.image}`);
+      } catch (deleteError) {
+        console.error('Failed to delete old image:', deleteError);
+        // Continue with deletion even if image deletion fails
+      }
     }
 
     await menuItem.deleteOne();
