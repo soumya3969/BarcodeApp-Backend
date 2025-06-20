@@ -12,7 +12,7 @@ exports.uploadFile = async (buffer, filePath) => {
 
 exports.deleteFile = async (url) => {
     try {
-        await del(url);
+        await del(url,{token: process.env.BARCODEAPP_READ_WRITE_TOKEN});
     } catch (error) {
         console.error("Error deleting file from vercel blob:", error);
         throw new Error("File deletion failed");
