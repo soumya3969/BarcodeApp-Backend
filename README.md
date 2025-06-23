@@ -22,7 +22,7 @@ Backend server for the Barcode App, a restaurant/table management and ordering s
 - JWT for authentication
 - Multer for file uploads
 - Vercel Blob Storage for images and QR codes
-- Winston for logging
+- QR Code generation (qrcode library)
 - Joi for validation
 
 ## Getting Started
