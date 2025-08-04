@@ -46,8 +46,8 @@ app.use(express.static(path.join(__dirname, 'public')));
   const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      // useNewUrlParser: true,
+      // useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000, // 30 seconds
 
     });
