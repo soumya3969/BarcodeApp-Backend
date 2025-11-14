@@ -6,7 +6,7 @@ const Order = require('../models/Order.model');
 // Get all menu items (public access)
 exports.getAllMenuItems = async (req, res) => {
   try {
-    const menuItems = await MenuItem.find({ isActive: true });
+    const menuItems = await MenuItem.find().sort({ category: 1 });
     res.json(menuItems);
   } catch (error) {
     res.status(500).json({ message: error.message });
