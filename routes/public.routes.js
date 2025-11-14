@@ -20,4 +20,8 @@ router.get('/tables/:id/menu', publicController.getTableMenu);
 // Public endpoint to create an order
 router.post('/orders', publicController.createOrder);
 
+// Public endpoint to get order by ID (for tracking)
+router.get('/orders/:id', publicController.getOrderById);
+
+
 module.exports = router;

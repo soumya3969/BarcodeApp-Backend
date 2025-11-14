@@ -108,3 +108,22 @@ exports.createOrder = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// Public endpoint to get order by ID (for tracking)
+exports.getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('table')
+      .populate('items.menuItem')
+      .populate('servedBy');
+    
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    
+    res.json(order);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
