@@ -127,3 +127,50 @@ exports.getOrderById = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+
+// Public endpoint to get orders by table ID (for order history)
+exports.getOrdersByTable = async (req, res) => {
+  try {
+    const { tableId } = req.params;
+    const { includeCompleted } = req.query; // Optional: include completed orders
+    
+    // Validate table
+    const table = await Table.findById(tableId);
+    if (!table) {
+      return res.status(404).json({ message: 'Table not found' });
+    }
+    
+    // Build query
+    const query = { table: tableId };
+    
+    // Filter out completed+paid orders older than 24 hours unless explicitly requested
+    if (includeCompleted !== 'true') {
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      query.$or = [
+        // Include orders that are not completed
+        { status: { $ne: 'completed' } },
+        // Include orders that are completed but not paid
+        { paymentStatus: { $ne: 'paid' } },
+        // Include completed+paid orders that are less than 24 hours old
+        {
+          status: 'completed',
+          paymentStatus: 'paid',
+          updatedAt: { $gte: twentyFourHoursAgo }
+        }
+      ];
+    }
+    
+    const orders = await Order.find(query)
+      .populate('table')
+      .populate('items.menuItem')
+      .populate('servedBy')
+      .sort({ createdAt: -1 })
+      .limit(20); // Limit to last 20 orders
+    
+    res.json(orders);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

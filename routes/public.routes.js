@@ -23,5 +23,7 @@ router.post('/orders', publicController.createOrder);
 // Public endpoint to get order by ID (for tracking)
 router.get('/orders/:id', publicController.getOrderById);
 
+// Public endpoint to get orders by table ID (for order history)
+router.get('/tables/:tableId/orders', publicController.getOrdersByTable);
 
 module.exports = router;
